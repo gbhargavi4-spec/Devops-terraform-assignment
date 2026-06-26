@@ -54,39 +54,6 @@ resource "aws_db_subnet_group" "this" {
   })
 }
 
-resource "aws_db_parameter_group" "this" {
-  name        = "${var.project}-${var.environment}-pg16"
-  family      = "postgres16"
-  description = "Custom parameter group for ${var.project} ${var.environment} PostgreSQL 16."
-
-  parameter {
-    name  = "log_connections"
-    value = "1"
-  }
-
-  parameter {
-    name  = "log_disconnections"
-    value = "1"
-  }
-
-  parameter {
-    name  = "log_duration"
-    value = "0"
-  }
-
-  parameter {
-    name  = "log_min_duration_statement"
-    value = "1000"
-  }
-
-  tags = merge(local.common_tags, {
-    Name = "${var.project}-${var.environment}-pg16"
-  })
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
 
 resource "aws_db_instance" "this" {
   identifier = "${var.project}-${var.environment}-postgres"
@@ -106,7 +73,6 @@ resource "aws_db_instance" "this" {
 
   db_subnet_group_name   = aws_db_subnet_group.this.name
   vpc_security_group_ids = [var.security_group_id]
-  parameter_group_name   = aws_db_parameter_group.this.name
 
   multi_az               = var.multi_az
   publicly_accessible    = false
