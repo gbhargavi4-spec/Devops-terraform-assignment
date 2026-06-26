@@ -119,6 +119,20 @@ module "ec2" {
   tags = var.tags
 }
 
+module "alb" {
+  source = "../../modules/alb"
+
+  project     = var.project
+  environment = var.environment
+
+  vpc_id            = module.networking.vpc_id
+  public_subnet_ids = module.networking.public_subnet_ids
+  ec2_instance_id   = module.ec2.instance_id
+  app_port          = var.app_port
+
+  tags = var.tags
+}
+
 module "cloudwatch" {
   source = "../../modules/cloudwatch"
 

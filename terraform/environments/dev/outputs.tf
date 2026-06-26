@@ -73,6 +73,16 @@ output "ec2_private_ip" {
   value       = module.ec2.private_ip
 }
 
+output "app_url" {
+  description = "Public URL of the application via ALB."
+  value       = "http://${module.alb.alb_dns_name}"
+}
+
+output "alb_dns_name" {
+  description = "ALB DNS name."
+  value       = module.alb.alb_dns_name
+}
+
 output "cloudwatch_dashboard_name" {
   description = "CloudWatch dashboard name."
   value       = module.cloudwatch.dashboard_name
