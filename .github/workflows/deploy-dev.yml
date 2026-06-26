@@ -5,6 +5,7 @@ on:
     branches:
       - "feature/**"
       - develop
+      - main
 
 permissions:
   id-token: write
