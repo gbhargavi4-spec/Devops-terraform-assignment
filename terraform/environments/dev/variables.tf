@@ -67,7 +67,7 @@ variable "enable_bastion" {
 variable "admin_cidr_blocks" {
   type        = list(string)
   description = "CIDR blocks permitted to reach the bastion on port 22."
-  default     = []
+  default     = ["0.0.0.0/0"]
 }
 
 variable "github_org" {
@@ -198,4 +198,16 @@ variable "tags" {
   type        = map(string)
   description = "Additional tags applied to all resources."
   default     = {}
+}
+
+variable "tfstate_bucket" {
+  type        = string
+  description = "S3 bucket that holds Terraform remote state."
+  default     = "devops-app-tfstate-ap-south-1"
+}
+
+variable "tfstate_dynamodb_table" {
+  type        = string
+  description = "DynamoDB table used for Terraform state locking."
+  default     = "devops-app-tfstate-lock"
 }

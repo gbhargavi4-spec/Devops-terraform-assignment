@@ -3,6 +3,7 @@ module "networking" {
 
   project     = var.project
   environment = var.environment
+  region      = var.aws_region
 
   vpc_cidr                 = var.vpc_cidr
   availability_zones       = var.availability_zones
@@ -11,8 +12,6 @@ module "networking" {
   private_db_subnet_cidrs  = var.private_db_subnet_cidrs
   enable_nat_gateway       = var.enable_nat_gateway
   single_nat_gateway       = var.single_nat_gateway
-  enable_bastion           = var.enable_bastion
-  admin_cidr_blocks        = var.admin_cidr_blocks
 
   tags = var.tags
 }
@@ -38,9 +37,11 @@ module "iam" {
   project     = var.project
   environment = var.environment
 
-  enable_github_oidc = var.enable_github_oidc
-  github_org         = var.github_org
-  github_repo        = var.github_repo
+  enable_github_oidc     = var.enable_github_oidc
+  github_org             = var.github_org
+  github_repo            = var.github_repo
+  tfstate_bucket         = var.tfstate_bucket
+  tfstate_dynamodb_table = var.tfstate_dynamodb_table
 
   tags = var.tags
 }
