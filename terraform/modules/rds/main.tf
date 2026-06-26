@@ -68,8 +68,8 @@ resource "aws_db_instance" "this" {
 
   allocated_storage     = var.allocated_storage
   max_allocated_storage = var.max_allocated_storage
-  storage_type          = "gp3"
-  storage_encrypted     = true
+  storage_type          = "gp2"
+  storage_encrypted     = false
 
   db_subnet_group_name   = aws_db_subnet_group.this.name
   vpc_security_group_ids = [var.security_group_id]
@@ -88,8 +88,7 @@ resource "aws_db_instance" "this" {
   monitoring_interval = var.enable_enhanced_monitoring ? var.monitoring_interval : 0
   monitoring_role_arn = var.enable_enhanced_monitoring ? var.monitoring_role_arn : null
 
-  performance_insights_enabled          = true
-  performance_insights_retention_period = 7
+  performance_insights_enabled = false
 
   auto_minor_version_upgrade = true
   apply_immediately          = false

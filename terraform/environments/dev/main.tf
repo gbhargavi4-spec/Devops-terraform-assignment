@@ -58,7 +58,7 @@ module "rds" {
   db_name     = var.db_name
   db_username = var.db_username
 
-  engine_version        = "16.3"
+  engine_version        = "16.4"
   instance_class        = var.rds_instance_class
   allocated_storage     = var.rds_allocated_storage
   max_allocated_storage = var.rds_max_allocated_storage
