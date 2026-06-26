@@ -79,11 +79,6 @@ resource "aws_db_parameter_group" "this" {
     value = "1000"
   }
 
-  parameter {
-    name  = "shared_preload_libraries"
-    value = "pg_stat_statements"
-  }
-
   tags = merge(local.common_tags, {
     Name = "${var.project}-${var.environment}-pg16"
   })
