@@ -1,3 +1,5 @@
+data "aws_region" "current" {}
+
 locals {
   alarm_actions = var.alarm_sns_topic_arn != "" ? [var.alarm_sns_topic_arn] : []
 
@@ -147,10 +149,11 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title  = "EC2 CPU Utilisation"
-          view   = "timeSeries"
-          stat   = "Average"
-          period = 300
+          title   = "EC2 CPU Utilisation"
+          view    = "timeSeries"
+          stat    = "Average"
+          period  = 300
+          region  = data.aws_region.current.name
           metrics = [
             ["AWS/EC2", "CPUUtilization", "InstanceId", var.ec2_instance_id]
           ]
@@ -164,10 +167,11 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title  = "EC2 Memory Utilisation"
-          view   = "timeSeries"
-          stat   = "Average"
-          period = 300
+          title   = "EC2 Memory Utilisation"
+          view    = "timeSeries"
+          stat    = "Average"
+          period  = 300
+          region  = data.aws_region.current.name
           metrics = [
             ["${var.project}/${var.environment}", "mem_used_percent", "InstanceId", var.ec2_instance_id, "Environment", var.environment]
           ]
@@ -181,10 +185,11 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title  = "RDS CPU Utilisation"
-          view   = "timeSeries"
-          stat   = "Average"
-          period = 300
+          title   = "RDS CPU Utilisation"
+          view    = "timeSeries"
+          stat    = "Average"
+          period  = 300
+          region  = data.aws_region.current.name
           metrics = [
             ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", var.rds_identifier]
           ]
@@ -198,10 +203,11 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title  = "RDS Free Storage Space (bytes)"
-          view   = "timeSeries"
-          stat   = "Average"
-          period = 300
+          title   = "RDS Free Storage Space (bytes)"
+          view    = "timeSeries"
+          stat    = "Average"
+          period  = 300
+          region  = data.aws_region.current.name
           metrics = [
             ["AWS/RDS", "FreeStorageSpace", "DBInstanceIdentifier", var.rds_identifier]
           ]
@@ -214,10 +220,11 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title  = "RDS Database Connections"
-          view   = "timeSeries"
-          stat   = "Average"
-          period = 300
+          title   = "RDS Database Connections"
+          view    = "timeSeries"
+          stat    = "Average"
+          period  = 300
+          region  = data.aws_region.current.name
           metrics = [
             ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", var.rds_identifier]
           ]
