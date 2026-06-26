@@ -9,7 +9,7 @@ locals {
 
 resource "aws_security_group" "app" {
   name        = "${var.project}-${var.environment}-app-sg"
-  description = "Application EC2 instances — HTTP/HTTPS inbound, all outbound."
+  description = "Application EC2 instances - HTTP/HTTPS inbound, all outbound."
   vpc_id      = var.vpc_id
 
   tags = merge(local.common_tags, {
@@ -24,7 +24,7 @@ resource "aws_security_group" "app" {
 
 resource "aws_security_group" "rds" {
   name        = "${var.project}-${var.environment}-rds-sg"
-  description = "PostgreSQL RDS — inbound from application tier only, no outbound."
+  description = "PostgreSQL RDS - inbound from application tier only, no outbound."
   vpc_id      = var.vpc_id
 
   tags = merge(local.common_tags, {
@@ -41,7 +41,7 @@ resource "aws_security_group" "bastion" {
   count = var.enable_bastion ? 1 : 0
 
   name        = "${var.project}-${var.environment}-bastion-sg"
-  description = "Bastion host — SSH inbound from admin CIDRs, SSH outbound to VPC."
+  description = "Bastion host - SSH inbound from admin CIDRs, SSH outbound to VPC."
   vpc_id      = var.vpc_id
 
   tags = merge(local.common_tags, {
@@ -56,7 +56,7 @@ resource "aws_security_group" "bastion" {
 
 resource "aws_security_group" "monitoring" {
   name        = "${var.project}-${var.environment}-monitoring-sg"
-  description = "Monitoring stack — Grafana from admin CIDRs, Prometheus and Node Exporter from VPC."
+  description = "Monitoring stack - Grafana from admin CIDRs, Prometheus and Node Exporter from VPC."
   vpc_id      = var.vpc_id
 
   tags = merge(local.common_tags, {

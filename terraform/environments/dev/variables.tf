@@ -83,7 +83,7 @@ variable "github_repo" {
 variable "enable_github_oidc" {
   type        = bool
   description = "Create the GitHub Actions OIDC provider. Set true only in one environment per account."
-  default     = true
+  default     = false
 }
 
 variable "db_name" {
