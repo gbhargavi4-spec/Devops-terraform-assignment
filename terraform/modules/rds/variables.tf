@@ -94,8 +94,8 @@ variable "backup_retention_period" {
   default     = 7
 
   validation {
-    condition     = var.backup_retention_period >= 1 && var.backup_retention_period <= 35
-    error_message = "backup_retention_period must be between 1 and 35."
+    condition     = var.backup_retention_period >= 0 && var.backup_retention_period <= 35
+    error_message = "backup_retention_period must be between 0 and 35. Use 0 to disable automated backups."
   }
 }
 
