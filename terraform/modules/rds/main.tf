@@ -55,9 +55,9 @@ resource "aws_db_subnet_group" "this" {
 }
 
 resource "aws_db_parameter_group" "this" {
-  name        = "${var.project}-${var.environment}-pg15"
-  family      = "postgres15"
-  description = "Custom parameter group for ${var.project} ${var.environment} PostgreSQL 15."
+  name        = "${var.project}-${var.environment}-pg16"
+  family      = "postgres16"
+  description = "Custom parameter group for ${var.project} ${var.environment} PostgreSQL 16."
 
   parameter {
     name  = "log_connections"
@@ -85,7 +85,7 @@ resource "aws_db_parameter_group" "this" {
   }
 
   tags = merge(local.common_tags, {
-    Name = "${var.project}-${var.environment}-pg15"
+    Name = "${var.project}-${var.environment}-pg16"
   })
 
   lifecycle {
