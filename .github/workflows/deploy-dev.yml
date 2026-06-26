@@ -113,3 +113,4 @@ jobs:
               \"systemctl restart app\"
             ]}" \
             --region ${{ env.AWS_REGION }}
+            
