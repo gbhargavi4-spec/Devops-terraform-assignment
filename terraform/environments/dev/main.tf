@@ -61,7 +61,7 @@ module "rds" {
   engine_version        = "16.4"
   instance_class        = var.rds_instance_class
   allocated_storage     = var.rds_allocated_storage
-  max_allocated_storage = var.rds_max_allocated_storage
+  max_allocated_storage = 0
 
   multi_az            = var.rds_multi_az
   deletion_protection = var.rds_deletion_protection
