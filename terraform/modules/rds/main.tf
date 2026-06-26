@@ -55,50 +55,6 @@ resource "aws_db_subnet_group" "this" {
 }
 
 
-resource "aws_db_instance" "this" {
-  identifier = "${var.project}-${var.environment}-postgres"
-
-  engine         = "postgres"
-  engine_version = var.engine_version
-  instance_class = var.instance_class
-
-  db_name  = var.db_name
-  username = var.db_username
-  password = random_password.db.result
-
-  allocated_storage     = var.allocated_storage
-  max_allocated_storage = var.max_allocated_storage
-  storage_type          = "gp2"
-  storage_encrypted     = false
-
-  db_subnet_group_name   = aws_db_subnet_group.this.name
-  vpc_security_group_ids = [var.security_group_id]
-
-  multi_az               = var.multi_az
-  publicly_accessible    = false
-  deletion_protection    = var.deletion_protection
-  skip_final_snapshot    = var.skip_final_snapshot
-  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.project}-${var.environment}-final-snapshot"
-
-  backup_retention_period = var.backup_retention_period
-  backup_window           = var.backup_window
-  maintenance_window      = var.maintenance_window
-  copy_tags_to_snapshot   = true
-
-  monitoring_interval = var.enable_enhanced_monitoring ? var.monitoring_interval : 0
-  monitoring_role_arn = var.enable_enhanced_monitoring ? var.monitoring_role_arn : null
-
-  performance_insights_enabled = false
-
-  auto_minor_version_upgrade = true
-  apply_immediately          = false
-
-  tags = merge(local.common_tags, {
-    Name = "${var.project}-${var.environment}-postgres"
-  })
-
-  lifecycle {
-    prevent_destroy       = false
-    ignore_changes        = [password]
-  }
+data "aws_db_instance" "this" {
+  db_instance_identifier = "${var.project}-${var.environment}-postgres"
 }
