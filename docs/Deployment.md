@@ -2,22 +2,21 @@
 
 ## Prerequisites
 
-- AWS CLI configured with sufficient permissions to create the S3 state bucket and DynamoDB lock table
+- AWS CLI configured with sufficient permissions
 - Terraform >= 1.6.0
 - Docker
-- GitHub repository with the following Secrets set
+- GitHub repository with Actions secrets configured
 
 ### Required GitHub Secrets
 
 | Secret | Description |
 |--------|-------------|
-| `DEV_DEPLOY_ROLE_ARN` | IAM role ARN for dev deployments (OIDC) |
-| `QA_DEPLOY_ROLE_ARN` | IAM role ARN for qa deployments (OIDC) |
-| `PROD_DEPLOY_ROLE_ARN` | IAM role ARN for prod deployments (OIDC) |
+| `AWS_ACCESS_KEY_ID` | AWS access key for CI/CD |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key for CI/CD |
 
 ### Required GitHub Environments
 
-Create a `production` environment in GitHub with required reviewers. The `deploy-prod.yml` workflow gates the apply and deploy jobs on this environment.
+The `deploy-dev.yml` workflow triggers on pushes to `feature/**`, `develop`, and `main`.
 
 ## First-Time Bootstrap
 
@@ -28,10 +27,6 @@ aws s3 mb s3://devops-app-tfstate-ap-south-1 --region ap-south-1
 aws s3api put-bucket-versioning \
   --bucket devops-app-tfstate-ap-south-1 \
   --versioning-configuration Status=Enabled
-aws s3api put-bucket-encryption \
-  --bucket devops-app-tfstate-ap-south-1 \
-  --server-side-encryption-configuration \
-    '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
 
 aws dynamodb create-table \
   --table-name devops-app-tfstate-lock \
@@ -41,20 +36,52 @@ aws dynamodb create-table \
   --region ap-south-1
 ```
 
-### 2. Deploy each layer for an environment
+### 2. Create RDS manually (required — see Challenges)
 
-Replace `dev` with `qa` or `prod` as needed.
+Terraform cannot determine a valid PostgreSQL engine version via the API. Create the instance via CLI:
 
 ```bash
-for layer in networking security iam rds ecr ec2 cloudwatch; do
-  cd terraform/environments/dev/$layer
-  terraform init
-  terraform apply
-  cd -
-done
+aws rds create-db-instance \
+  --db-instance-identifier devops-app-dev-postgres \
+  --db-instance-class db.t4g.micro \
+  --engine postgres \
+  --engine-version 16.4 \
+  --master-username devopsadmin \
+  --master-user-password "DevOps2024Secure" \
+  --db-name devopsdb \
+  --allocated-storage 20 \
+  --no-multi-az \
+  --no-publicly-accessible \
+  --storage-type gp2 \
+  --backup-retention-period 0 \
+  --region ap-south-1
 ```
 
-### 3. Build and push the initial Docker image
+Wait for it to become Available:
+```bash
+aws rds wait db-instance-available --db-instance-identifier devops-app-dev-postgres --region ap-south-1
+```
+
+Store the password in SSM:
+```bash
+aws ssm put-parameter \
+  --name "/devops-app/dev/rds/password" \
+  --value "DevOps2024Secure" \
+  --type SecureString \
+  --region ap-south-1
+```
+
+### 3. Run Terraform
+
+```bash
+cd terraform/environments/dev
+terraform init
+terraform apply
+```
+
+This provisions: VPC, subnets, security groups, IAM roles, ECR, EC2, ALB, and CloudWatch (the RDS module uses a data source to read the manually-created instance).
+
+### 4. Build and push the initial Docker image
 
 ```bash
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -68,22 +95,78 @@ docker build -t "$ECR_REGISTRY/$REPO:latest" application/
 docker push "$ECR_REGISTRY/$REPO:latest"
 ```
 
+### 5. Start the application via SSM
+
+Get the EC2 instance ID from Terraform output:
+```bash
+terraform output ec2_instance_id
+```
+
+Then send the run command (replace `INSTANCE_ID` and `DB_HOST`):
+```bash
+DB_HOST=$(aws rds describe-db-instances \
+  --db-instance-identifier devops-app-dev-postgres \
+  --query 'DBInstances[0].Endpoint.Address' \
+  --output text --region ap-south-1)
+
+aws ssm send-command \
+  --instance-ids "INSTANCE_ID" \
+  --document-name "AWS-RunShellScript" \
+  --region ap-south-1 \
+  --parameters "commands=[
+    'aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 829182232239.dkr.ecr.ap-south-1.amazonaws.com',
+    'docker pull 829182232239.dkr.ecr.ap-south-1.amazonaws.com/devops-app-dev:latest',
+    'docker stop devops-app 2>/dev/null || true',
+    'docker rm devops-app 2>/dev/null || true',
+    'docker run -d --name devops-app --restart unless-stopped -p 8000:8000 -e DATABASE_HOST=$DB_HOST -e DATABASE_PORT=5432 -e DATABASE_NAME=devopsdb -e DATABASE_USER=devopsadmin -e DATABASE_PASSWORD=DevOps2024Secure -e ENVIRONMENT=dev 829182232239.dkr.ecr.ap-south-1.amazonaws.com/devops-app-dev:latest'
+  ]"
+```
+
 ## CI/CD Pipeline
 
-### Branch → Environment mapping
+### Workflow job order
 
-| Branch pattern | Workflow | Environment |
-|----------------|----------|-------------|
-| `feature/**`, `develop` | `deploy-dev.yml` | dev |
-| `develop` | `deploy-qa.yml` | qa |
-| `main` | `deploy-prod.yml` | prod (with manual approval) |
+The `deploy-dev.yml` workflow runs jobs in this order:
 
-### Workflow stages
+```
+terraform-apply
+      |
+      v
+build-and-push
+      |
+      v
+deploy-app
+```
 
-1. **CI** (`ci.yml`) — runs on every push; terraform fmt check, module validate, Docker build, Trivy scan
-2. **Build & Push** — builds Docker image, tags with `sha-<commit>`, pushes to ECR
-3. **Terraform Apply** — applies all seven layers in dependency order
-4. **Deploy App** — SSM Run Command to pull new image and restart the systemd service
+Terraform runs first so that ECR exists before the Docker build job tries to push to it.
+
+### Job: terraform-apply
+
+- Runs `terraform init` and `terraform apply -auto-approve` in `terraform/environments/dev/`
+- Uses `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` secrets
+
+### Job: build-and-push
+
+- Builds the Docker image from `application/`
+- Tags: `sha-<git-commit>` and `latest`
+- Pushes to ECR `devops-app-dev`
+
+### Job: deploy-app
+
+- Calls SSM Run Command on the EC2 instance to pull the new image and restart the container
+
+## Verifying the Deployment
+
+```bash
+# Health check
+curl http://devops-app-dev-alb-64195356.ap-south-1.elb.amazonaws.com/health
+
+# Application status
+curl http://devops-app-dev-alb-64195356.ap-south-1.elb.amazonaws.com/api/v1/status
+
+# Swagger UI
+open http://devops-app-dev-alb-64195356.ap-south-1.elb.amazonaws.com/docs
+```
 
 ## Local Development
 
@@ -94,6 +177,6 @@ docker compose up
 ```
 
 Access:
-- App: http://localhost:8000
+- App: http://localhost:8000/docs
 - Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000 (admin / value from .env `GRAFANA_ADMIN_PASSWORD`)
+- Grafana: http://localhost:3000
