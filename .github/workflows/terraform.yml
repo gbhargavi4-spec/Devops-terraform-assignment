@@ -9,7 +9,6 @@ jobs:
 terraform:
 runs-on: ubuntu-latest
 
-```
 steps:
   - name: Checkout Code
     uses: actions/checkout@v3
@@ -22,4 +21,3 @@ steps:
 
   - name: Terraform Validate
     run: terraform validate
-```
